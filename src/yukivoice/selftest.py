@@ -75,7 +75,7 @@ def run(argv) -> int:
             if peak < 0.01:
                 raise RuntimeError(f"{name}: synthesized audio is silent")
             res[name] = f"{len(samples) / sr:.1f}s peak={peak:.2f}"
-        res["voices"] = len(tts.voice_ids())
+        res["voices"] = len(ctx.voices())
         return res
 
     def updater_logic():
