@@ -55,6 +55,15 @@ DEFAULTS = {
     "language": "auto",
     "monitor": True,
     "tray_hint_shown": False,
+    # "local" = built-in Kokoro; "api" = an OpenAI-compatible speech server
+    "engine": "local",
+    "api_url": "http://127.0.0.1:18793/v1",
+    "api_key": "",
+    "api_model": "kokoro",
+    # auto-update: checks GitHub releases; update_token is only needed while the repo is private
+    "auto_update": True,
+    "update_token": "",
+    "skipped_version": "",
 }
 
 

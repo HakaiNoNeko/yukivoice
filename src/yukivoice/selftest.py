@@ -78,6 +78,12 @@ def run(argv) -> int:
         res["voices"] = len(tts.voice_ids())
         return res
 
+    def updater_logic():
+        from . import __version__, updater
+        assert updater.parse_version("v0.10.0") > updater.parse_version("0.9.9")
+        assert updater.is_newer("99.0.0") and not updater.is_newer(__version__)
+        return f"version {__version__}"
+
     def devices():
         from .audio import player
         return [d["name"] for d in player.playback_devices()]
@@ -97,6 +103,7 @@ def run(argv) -> int:
     if variant:
         step("download", download)
     step("speech", speech)
+    step("updater", updater_logic)
     step("devices", devices, required=False)   # CI machines have no sound hardware
     step("windows_extras", windows_extras)
 

@@ -5,9 +5,9 @@ import threading
 
 from PySide6.QtCore import QThread, QTimer, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QIcon
-from PySide6.QtWidgets import (QButtonGroup, QComboBox, QHBoxLayout, QLabel, QListWidget,
+from PySide6.QtWidgets import (QButtonGroup, QComboBox, QHBoxLayout, QLabel, QLineEdit, QListWidget,
                                QListWidgetItem, QProgressBar, QPushButton, QRadioButton,
-                               QVBoxLayout, QWizard, QWizardPage)
+                               QVBoxLayout, QWidget, QWizard, QWizardPage)
 
 from .. import APP_NAME, tts
 from ..audio import player
@@ -44,6 +44,21 @@ class _InstallWorker(QThread):
         except Exception as e:
             log(f"install failed: {e}")
             self.failed.emit(f"Download failed: {e}")
+
+
+class _ApiTestWorker(QThread):
+    result = Signal(str)
+
+    def __init__(self, engine):
+        super().__init__()
+        self.engine = engine
+
+    def run(self):
+        try:
+            n = len(self.engine.list_voices())
+            self.result.emit(f"✅ Connected — the server offers {n} voices.")
+        except Exception as e:
+            self.result.emit(f"⚠️ {type(e).__name__}: {e}")
 
 
 class _CableWorker(QThread):
@@ -91,7 +106,7 @@ class _Welcome(QWizardPage):
             "You can also play sound files or send another app's audio to the mic."))
         lay.addWidget(_label("This wizard will:"))
         lay.addWidget(_label("  1.  Check your audio setup (and install the virtual mic driver on Windows)\n"
-                             "  2.  Download the Kokoro voice engine (one-time download)\n"
+                             "  2.  Set up the voice engine (built-in Kokoro download, or your own custom API)\n"
                              "  3.  Let you pick the voice you want to use"))
         lay.addStretch(1)
 
@@ -178,18 +193,28 @@ class _EnginePage(QWizardPage):
         super().__init__()
         self.ctx = ctx
         self._worker = None
+        self._test = None
         self.setTitle("Voice engine")
-        self.setSubTitle("YukiVoice speaks with Kokoro, a small, natural-sounding offline voice model.")
+        self.setSubTitle("Choose where speech comes from.")
         lay = QVBoxLayout(self)
-        lay.addWidget(_label("Kokoro runs on your computer — no account, nothing is sent anywhere. "
-                             "The model (about 350 MB with the voice pack) is a one-time download."))
+        self.mode_local = QRadioButton("Built-in Kokoro (offline, one-time download)")
+        self.mode_api = QRadioButton("Custom API (an OpenAI-compatible speech server you run)")
+        (self.mode_api if ctx.uses_api() else self.mode_local).setChecked(True)
+        lay.addWidget(self.mode_local)
+
+        # ── built-in ──
+        self.local_box = QWidget()
+        ll = QVBoxLayout(self.local_box)
+        ll.setContentsMargins(24, 0, 0, 0)
+        ll.addWidget(_label("Kokoro runs on your computer — no account, nothing is sent anywhere. "
+                            "The model (about 350 MB with the voice pack) is a one-time download."))
         self.group = QButtonGroup(self)
         self.radios = {}
         for key, (text, _) in tts.MODELS.items():
             r = QRadioButton(text)
             self.group.addButton(r)
             self.radios[key] = r
-            lay.addWidget(r)
+            ll.addWidget(r)
         self.radios[ctx.settings["model"] if ctx.settings["model"] in tts.MODELS else "standard"].setChecked(True)
         for r in self.radios.values():
             r.toggled.connect(self._refresh)
@@ -200,13 +225,57 @@ class _EnginePage(QWizardPage):
         self.btn.clicked.connect(self._toggle)
         row.addWidget(self.btn)
         row.addStretch(1)
-        lay.addLayout(row)
+        ll.addLayout(row)
         self.bar = QProgressBar()
         self.bar.setRange(0, 1000)
-        lay.addWidget(self.bar)
+        ll.addWidget(self.bar)
         self.msg = _label("", "dim")
-        lay.addWidget(self.msg)
+        ll.addWidget(self.msg)
+        lay.addWidget(self.local_box)
+
+        lay.addWidget(self.mode_api)
+        # ── custom API ──
+        self.api_box = QWidget()
+        al = QVBoxLayout(self.api_box)
+        al.setContentsMargins(24, 0, 0, 0)
+        al.addWidget(_label("Text is sent to the server and the audio that comes back goes to the virtual mic. "
+                            "The server must offer <b>POST {address}/audio/speech</b> and <b>GET {address}/voices</b>."))
+        self.api_url = QLineEdit(ctx.settings["api_url"])
+        self.api_url.setPlaceholderText("http://127.0.0.1:18793/v1")
+        self.api_key = QLineEdit(ctx.settings["api_key"])
+        self.api_key.setEchoMode(QLineEdit.EchoMode.Password)
+        self.api_key.setPlaceholderText("API key (leave empty if the server needs none)")
+        self.api_model = QLineEdit(ctx.settings["api_model"])
+        for label, edit in (("Address", self.api_url), ("Key", self.api_key), ("Model", self.api_model)):
+            r = QHBoxLayout()
+            lab = QLabel(label)
+            lab.setMinimumWidth(52)
+            r.addWidget(lab)
+            r.addWidget(edit, 1)
+            al.addLayout(r)
+            edit.textChanged.connect(lambda *_: self.completeChanged.emit())
+        row = QHBoxLayout()
+        self.test_btn = QPushButton("Test connection")
+        self.test_btn.clicked.connect(self._test_api)
+        row.addWidget(self.test_btn)
+        self.api_msg = _label("", "dim")
+        row.addWidget(self.api_msg, 1)
+        al.addLayout(row)
+        lay.addWidget(self.api_box)
         lay.addStretch(1)
+
+        for r in (self.mode_local, self.mode_api):
+            r.toggled.connect(self._mode_changed)
+        self._mode_changed()
+
+    def api(self) -> bool:
+        return self.mode_api.isChecked()
+
+    def _mode_changed(self, *_):
+        self.local_box.setVisible(not self.api())
+        self.api_box.setVisible(self.api())
+        self._refresh()
+        self.completeChanged.emit()
 
     def variant(self):
         return next(k for k, r in self.radios.items() if r.isChecked())
@@ -225,8 +294,21 @@ class _EnginePage(QWizardPage):
         self.completeChanged.emit()
 
     def isComplete(self):
+        if self.api():
+            return bool(self.api_url.text().strip())
         return tts.is_installed(self.variant()) and not (self._worker and self._worker.isRunning())
 
+    # ── custom API ──
+    def _test_api(self):
+        probe = dict(api_url=self.api_url.text(), api_key=self.api_key.text(), api_model=self.api_model.text())
+        self.test_btn.setEnabled(False)
+        self.api_msg.setText("Connecting…")
+        w = self._test = _ApiTestWorker(tts.RemoteEngine(probe))
+        w.result.connect(self.api_msg.setText)
+        w.finished.connect(lambda: self.test_btn.setEnabled(True))
+        w.start()
+
+    # ── built-in ──
     def _toggle(self):
         if self._worker and self._worker.isRunning():
             self._worker.cancel.set()
@@ -261,7 +343,15 @@ class _EnginePage(QWizardPage):
         self._refresh()
 
     def validatePage(self):
-        self.ctx.settings["model"] = self.variant()
+        s = self.ctx.settings
+        if self.api():
+            s["engine"] = "api"
+            s["api_url"] = self.api_url.text().strip().rstrip("/")
+            s["api_key"] = self.api_key.text().strip()
+            s["api_model"] = self.api_model.text().strip() or "kokoro"
+        else:
+            s["engine"] = "local"
+            s["model"] = self.variant()
         return True
 
 
@@ -294,10 +384,10 @@ class _VoicePage(QWizardPage):
 
     def initializePage(self):
         try:
-            self._voices = tts.all_voices()
+            self._voices = self.ctx.voices()
         except Exception as e:
             self._voices = []
-            self.msg.setText(f"Couldn't read the voice pack: {e}")
+            self.msg.setText(f"Couldn't load the voice list: {e}")
         current = tts.describe_voice(self.ctx.settings["voice"])
         self.lang.blockSignals(True)
         self.lang.clear()

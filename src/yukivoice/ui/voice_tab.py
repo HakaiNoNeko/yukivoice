@@ -154,6 +154,8 @@ class VoiceTab(QWidget):
         if not ctx.engine_ready():
             self.log("warn", "The voice engine isn't installed yet — open Tools → Setup wizard.")
         else:
+            if ctx.uses_api():
+                self.log("sys", f"Speaking through the custom API at {ctx.settings['api_url']}")
             self.log("sys", f"Pick “{ctx.backend.mic_label}” as your microphone in Discord, games, etc.")
         self.entry.setFocus()
 
@@ -161,7 +163,11 @@ class VoiceTab(QWidget):
 
     def reload_voices(self):
         want = self.ctx.settings["voice"]
-        voices = tts.all_voices(self.ctx.engine_ready())
+        try:
+            voices = self.ctx.voices()
+        except Exception as e:
+            voices = []
+            self.log("warn", f"Couldn't load the voice list from the custom API: {e}")
         ids = [v.id for v in voices]
         if want not in ids:
             if want.startswith(tts.CUSTOM_PREFIX) and ids:   # the custom voice was deleted

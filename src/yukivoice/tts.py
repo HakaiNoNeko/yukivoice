@@ -5,9 +5,11 @@ setup wizard "installs" is the model weights and the voice pack, downloaded once
 from the kokoro-onnx GitHub release into the user's data folder.
 """
 
+import io
 import json
 import re
 import threading
+import wave
 from dataclasses import dataclass
 
 import numpy as np
@@ -63,10 +65,9 @@ class Voice:
 # A custom voice is a named blend of stock voices ({"mix": {voice: weight}}) or an
 # imported style file ({"file": path to a (510, 1, 256) .npy}), plus the language
 # it speaks by default. Kokoro voices are style vectors, so blends are weighted
-# averages. "Yuki" ships as a preset (stock jf_alpha), and can be edited or deleted.
+# averages. None ship with the app; they live in the user's own config folder.
 
 CUSTOM_PREFIX = "custom:"
-_SEED = {"Yuki": {"mix": {"jf_alpha": 1.0}, "lang": "ja"}}
 STYLE_SHAPE = (510, 1, 256)
 
 
@@ -77,8 +78,7 @@ def _custom_file():
 def load_custom() -> dict:
     path = _custom_file()
     if not path.exists():
-        save_custom(_SEED)
-        return json.loads(json.dumps(_SEED))
+        return {}
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
         return data if isinstance(data, dict) else {}
@@ -374,3 +374,64 @@ class Engine:
         if not parts:
             return np.zeros(0, dtype=np.float32), sr
         return np.clip(np.concatenate(parts), -1.0, 1.0).astype(np.float32), sr
+
+
+# ── custom API engine ───────────────────────────────────────────────────────
+
+class RemoteEngine:
+    """Speaks through an OpenAI-compatible `/audio/speech` server (e.g. a Kokoro API).
+
+    Text preparation, language detection and chunking all happen server-side, so this
+    only forwards the request and decodes the WAV that comes back. Connection details
+    are read from the settings on every call, so edits apply immediately.
+    """
+
+    variant = "api"
+
+    def __init__(self, settings):
+        self.settings = settings
+
+    def _base(self) -> str:
+        url = (self.settings["api_url"] or "").strip().rstrip("/")
+        if not url:
+            raise RuntimeError("No custom API address is set (Tools → Setup wizard).")
+        return url
+
+    def _headers(self) -> dict:
+        key = (self.settings["api_key"] or "").strip()
+        return {"Authorization": f"Bearer {key}"} if key else {}
+
+    def list_voices(self) -> list:
+        """Voice ids offered by the server (`GET {url}/voices`)."""
+        try:
+            r = requests.get(self._base() + "/voices", headers=self._headers(), timeout=4)
+        except requests.ConnectionError:
+            raise RuntimeError(f"Can't reach {self._base()} — is the server running?") from None
+        r.raise_for_status()
+        data = r.json()
+        items = data.get("voices", data.get("data", [])) if isinstance(data, dict) else data
+        return sorted({v["id"] if isinstance(v, dict) else str(v) for v in items})
+
+    def synth(self, text: str, voice, speed: float = 1.0, language: str = "auto"):
+        if isinstance(voice, dict) or str(voice).startswith(CUSTOM_PREFIX):
+            raise RuntimeError("Blended custom voices only work with the built-in engine. "
+                               "Pick one of the API's voices.")
+        body = {"model": self.settings["api_model"] or "kokoro", "voice": voice, "input": text,
+                "speed": speed, "response_format": "wav"}
+        if language and language != "auto":
+            body["language"] = language
+        try:
+            r = requests.post(self._base() + "/audio/speech", json=body, headers=self._headers(), timeout=180)
+        except requests.ConnectionError:
+            raise RuntimeError(f"Can't reach the custom API at {self._base()} — is it running?") from None
+        if r.status_code != 200:
+            detail = r.text[:200].strip()
+            raise RuntimeError(f"The custom API returned {r.status_code}: {detail}")
+        with wave.open(io.BytesIO(r.content)) as w:
+            if w.getsampwidth() != 2:
+                raise RuntimeError("The custom API must return 16-bit WAV audio.")
+            sr, ch = w.getframerate(), w.getnchannels()
+            pcm = np.frombuffer(w.readframes(w.getnframes()), dtype="<i2").astype(np.float32) / 32768.0
+        if ch > 1:
+            pcm = pcm.reshape(-1, ch).mean(axis=1)
+        return pcm, sr

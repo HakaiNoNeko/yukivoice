@@ -23,14 +23,23 @@ class Context(QObject):
         v = self.settings["model"]
         return v if v in tts.MODELS else "standard"   # e.g. a setting left by an older build
 
-    def engine(self) -> tts.Engine:
-        variant = self._variant()
+    def uses_api(self) -> bool:
+        return self.settings["engine"] == "api"
+
+    def engine(self):
+        variant = "api" if self.uses_api() else self._variant()
         if self._engine is None or self._engine.variant != variant:
-            self._engine = tts.Engine(variant)
+            self._engine = tts.RemoteEngine(self.settings) if self.uses_api() else tts.Engine(variant)
         return self._engine
 
     def engine_ready(self) -> bool:
-        return tts.is_installed(self._variant())
+        return True if self.uses_api() else tts.is_installed(self._variant())
+
+    def voices(self) -> list:
+        """Voices the current engine can speak. Raises if the custom API can't be reached."""
+        if self.uses_api():
+            return [tts.describe_voice(v) for v in self.engine().list_voices()]
+        return tts.all_voices(self.engine_ready())
 
     def targets(self) -> list:
         """Playback targets: the virtual mic, plus the speakers when Monitor is on."""

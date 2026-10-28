@@ -1,19 +1,46 @@
 """Main window: Voice and Audio tabs, a Monitor toggle, and a tray icon."""
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QThread, QTimer, Qt, Signal
 from PySide6.QtGui import QAction, QDesktopServices, QIcon
 from PySide6.QtCore import QUrl
-from PySide6.QtWidgets import (QCheckBox, QHBoxLayout, QLabel, QMainWindow, QMenu, QMessageBox,
-                               QSystemTrayIcon, QTabWidget, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QApplication, QCheckBox, QHBoxLayout, QLabel, QMainWindow, QMenu,
+                               QMessageBox, QProgressDialog, QSystemTrayIcon, QTabWidget, QVBoxLayout,
+                               QWidget)
 
-from .. import APP_NAME, __version__, config
+from .. import APP_NAME, __version__, config, updater
 from ..context import Context
+from ..log import log
 from . import theme
 from .audio_tab import AudioTab
 from .custom_voices import CustomVoicesDialog
 from .voice_tab import VoiceTab
 
 _DOT = {"ready": theme.OK, "busy": theme.ACCENT, "warn": theme.WARN, "off": theme.DIM}
+
+
+class _UpdateWorker(QThread):
+    """Checks for a release (mode "check"), or downloads and installs one (mode "apply")."""
+    found = Signal(object)      # Release | None
+    failed = Signal(str)
+    progress = Signal(int, int)
+    installed = Signal()
+
+    def __init__(self, settings, rel=None):
+        super().__init__()
+        self.settings, self.rel = settings, rel
+
+    def run(self):
+        try:
+            if self.rel is None:
+                self.found.emit(updater.check(self.settings))
+            else:
+                updater.apply(self.rel, self.settings, lambda d, t: self.progress.emit(d, t))
+                self.installed.emit()
+        except updater.UpdateError as e:
+            self.failed.emit(str(e))
+        except Exception as e:
+            log(f"update failed: {type(e).__name__}: {e}")
+            self.failed.emit(f"{type(e).__name__}: {e}")
 
 
 class MainWindow(QMainWindow):
@@ -55,6 +82,10 @@ class MainWindow(QMainWindow):
         ctx.engine_changed.connect(self.voice_tab.reload_voices)
         self._build_menu()
         self.tray = self._build_tray(icon)
+        self._update_worker = None
+        updater.cleanup_old()
+        if ctx.settings["auto_update"]:
+            QTimer.singleShot(4000, lambda: self.check_updates(silent=True))
 
     # ── status ──────────────────────────────────────────────────────────
 
@@ -82,6 +113,14 @@ class MainWindow(QMainWindow):
         tools.addAction(act)
         act = QAction("Custom voices…", self)
         act.triggered.connect(lambda: CustomVoicesDialog(self.ctx, self).exec())
+        tools.addAction(act)
+        act = QAction("Check for updates…", self)
+        act.triggered.connect(lambda: self.check_updates(silent=False))
+        tools.addAction(act)
+        act = QAction("Check for updates on startup", self)
+        act.setCheckable(True)
+        act.setChecked(bool(self.ctx.settings["auto_update"]))
+        act.toggled.connect(lambda on: self.ctx.settings.__setitem__("auto_update", on))
         tools.addAction(act)
         act = QAction("Open log folder", self)
         act.triggered.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(config.config_dir()))))
@@ -129,6 +168,69 @@ class MainWindow(QMainWindow):
         self.tabs.setCurrentWidget(self.voice_tab)
         self.voice_tab.focus_entry()
 
+    # ── updates ─────────────────────────────────────────────────────────
+
+    def check_updates(self, silent: bool):
+        if self._update_worker and self._update_worker.isRunning():
+            return
+        w = self._update_worker = _UpdateWorker(self.ctx.settings)
+        w.found.connect(lambda rel: self._update_found(rel, silent))
+        w.failed.connect(lambda msg: self._update_failed(msg, silent))
+        w.start()
+
+    def _update_failed(self, msg, silent):
+        log(f"update check failed: {msg}")
+        if not silent:
+            QMessageBox.warning(self, APP_NAME, f"Couldn't check for updates.\n\n{msg}")
+
+    def _update_found(self, rel, silent):
+        if rel is None:
+            if not silent:
+                QMessageBox.information(self, APP_NAME, f"You're up to date (version {__version__}).")
+            return
+        box = QMessageBox(self)
+        box.setWindowTitle(APP_NAME)
+        box.setIcon(QMessageBox.Icon.Information)
+        box.setText(f"<b>YukiVoice {rel.version}</b> is available (you have {__version__}).")
+        if rel.notes.strip():
+            box.setInformativeText(rel.notes.strip()[:600])
+        if updater.can_self_update() and rel.asset_api_url:
+            install = box.addButton("Update and restart", QMessageBox.ButtonRole.AcceptRole)
+        else:
+            install = box.addButton("Open release page", QMessageBox.ButtonRole.AcceptRole)
+        box.addButton("Later", QMessageBox.ButtonRole.RejectRole)
+        skip = box.addButton("Skip this version", QMessageBox.ButtonRole.DestructiveRole)
+        box.exec()
+        if box.clickedButton() is skip:
+            self.ctx.settings["skipped_version"] = rel.version
+        elif box.clickedButton() is install:
+            if updater.can_self_update() and rel.asset_api_url:
+                self._install_update(rel)
+            else:
+                QDesktopServices.openUrl(QUrl(rel.url))
+
+    def _install_update(self, rel):
+        dlg = QProgressDialog(f"Downloading YukiVoice {rel.version}…", None, 0, 1000, self)
+        dlg.setWindowTitle(APP_NAME)
+        dlg.setWindowModality(Qt.WindowModality.WindowModal)
+        dlg.setMinimumDuration(0)
+        dlg.setValue(0)
+        w = self._update_worker = _UpdateWorker(self.ctx.settings, rel)
+        w.progress.connect(lambda d, t: dlg.setValue(int(d * 1000 / max(t, 1))))
+
+        def failed(msg):
+            dlg.close()
+            QMessageBox.warning(self, APP_NAME, f"The update didn't install.\n\n{msg}")
+
+        def done():
+            dlg.close()
+            updater.relaunch()
+            self.quit_app()
+
+        w.failed.connect(failed)
+        w.installed.connect(done)
+        w.start()
+
     # ── lifecycle ───────────────────────────────────────────────────────
 
     def closeEvent(self, e):
@@ -148,5 +250,4 @@ class MainWindow(QMainWindow):
 
     def quit_app(self):
         self._quitting = True
-        from PySide6.QtWidgets import QApplication
         QApplication.quit()
