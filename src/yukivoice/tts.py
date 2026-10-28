@@ -5,6 +5,7 @@ setup wizard "installs" is the model weights and the voice pack, downloaded once
 from the kokoro-onnx GitHub release into the user's data folder.
 """
 
+import json
 import re
 import threading
 from dataclasses import dataclass
@@ -51,17 +52,90 @@ class Voice:
     lang_label: str
     gender: str
     name: str
+    custom: bool = False
 
     @property
     def display(self) -> str:
-        return f"{self.name} ({self.gender})"
+        return f"{self.name} (custom)" if self.custom else f"{self.name} ({self.gender})"
+
+
+# ── custom voices ───────────────────────────────────────────────────────────
+# A custom voice is a named blend of stock voices ({"mix": {voice: weight}}) or an
+# imported style file ({"file": path to a (510, 1, 256) .npy}), plus the language
+# it speaks by default. Kokoro voices are style vectors, so blends are weighted
+# averages. "Yuki" ships as a preset (stock jf_alpha), and can be edited or deleted.
+
+CUSTOM_PREFIX = "custom:"
+_SEED = {"Yuki": {"mix": {"jf_alpha": 1.0}, "lang": "ja"}}
+STYLE_SHAPE = (510, 1, 256)
+
+
+def _custom_file():
+    return config.config_dir() / "custom_voices.json"
+
+
+def load_custom() -> dict:
+    path = _custom_file()
+    if not path.exists():
+        save_custom(_SEED)
+        return json.loads(json.dumps(_SEED))
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def save_custom(data: dict) -> None:
+    _custom_file().write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def import_style_file(src: str, name: str) -> str:
+    """Copy a voice style .npy into the data folder; returns the stored path."""
+    arr = np.load(src)
+    if arr.shape != STYLE_SHAPE:
+        raise ValueError(f"Not a Kokoro voice file: expected shape {STYLE_SHAPE}, got {arr.shape}")
+    dest_dir = config.data_dir() / "voices"
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = dest_dir / (re.sub(r"[^\w.-]+", "_", name) + ".npy")
+    np.save(dest, arr.astype(np.float32))
+    return str(dest)
+
+
+def custom_style(spec: dict, pack) -> np.ndarray:
+    """Style array for a custom voice spec; `pack` is the loaded voice pack."""
+    if spec.get("file"):
+        arr = np.load(spec["file"])
+        if arr.shape != STYLE_SHAPE:
+            raise RuntimeError(f"Voice file {spec['file']} has the wrong shape {arr.shape}")
+        return arr.astype(np.float32)
+    mix = {v: float(w) for v, w in (spec.get("mix") or {}).items() if float(w) > 0}
+    missing = [v for v in mix if v not in pack]
+    if missing:
+        raise RuntimeError(f"Custom voice uses voices that aren't in the voice pack: {', '.join(missing)}")
+    if not mix:
+        raise RuntimeError("This custom voice has no voices in its mix.")
+    total = sum(mix.values())
+    return (sum(w * pack[v] for v, w in mix.items()) / total).astype(np.float32)
 
 
 def describe_voice(voice_id: str) -> Voice:
+    if voice_id.startswith(CUSTOM_PREFIX):
+        name = voice_id[len(CUSTOM_PREFIX):]
+        lang = (load_custom().get(name) or {}).get("lang", "en-us")
+        return Voice(voice_id, lang, _LANG_INFO.get(lang, _LANG_INFO["en-us"])[0], "custom", name, True)
     prefix, _, rest = voice_id.partition("_")
     lang = _LANG_BY_PREFIX.get(prefix[:1], "en-us")
     gender = "female" if prefix[1:2] == "f" else "male"
     return Voice(voice_id, lang, _LANG_INFO[lang][0], gender, rest.replace("_", " ").title() or voice_id)
+
+
+def all_voices(variant_installed: bool = True) -> list:
+    """Custom voices first, then everything in the installed voice pack."""
+    out = [describe_voice(CUSTOM_PREFIX + n) for n in load_custom()]
+    if variant_installed and voices_path().is_file():
+        out += [describe_voice(v) for v in voice_ids()]
+    return out
 
 
 def sample_text(lang: str) -> str:
@@ -159,11 +233,11 @@ def _is_en_char(ch):
     return ch.isascii() and ch.isalpha()
 
 
-def resolve_language(text: str, voice: str, choice: str = "auto") -> str:
+def resolve_language(text: str, voice: str, choice: str = "auto", voice_lang: str = None) -> str:
     """Pick the kokoro language code for this message."""
     if choice != "auto":
         return choice
-    voice_lang = describe_voice(voice).lang
+    voice_lang = voice_lang or describe_voice(voice).lang
     if voice_lang != "cmn":
         jp = sum(1 for c in text if _is_jp_char(c))
         en = sum(1 for c in text if _is_en_char(c))
@@ -273,20 +347,30 @@ class Engine:
             self._kokoro = Kokoro(str(model_path(self.variant)), str(voices_path()))
         return self._kokoro
 
-    def synth(self, text: str, voice: str, speed: float = 1.0, language: str = "auto"):
-        """Returns (float32 mono samples, sample rate)."""
-        lang = resolve_language(text, voice, language)
+    def synth(self, text: str, voice, speed: float = 1.0, language: str = "auto"):
+        """`voice` is a voice id, or a custom-voice spec dict (used by the editor's
+        preview). Returns (float32 mono samples, sample rate)."""
+        spec = voice if isinstance(voice, dict) else None
+        if spec is None and voice.startswith(CUSTOM_PREFIX):
+            spec = load_custom().get(voice[len(CUSTOM_PREFIX):])
+            if spec is None:
+                raise RuntimeError(f"Custom voice “{voice[len(CUSTOM_PREFIX):]}” no longer exists.")
+        if spec is not None:
+            lang = resolve_language(text, "custom", language, spec.get("lang", "en-us"))
+        else:
+            lang = resolve_language(text, voice, language)
         text = prepare_text(text, lang)
         chunks = _chunk_ja(text) if lang == "ja" else _chunk_other(text)
         with self._lock:
             k = self._load()
+            style = custom_style(spec, k.voices) if spec is not None else voice
             parts, sr = [], 24000
             for chunk in chunks:
                 if not chunk.strip():
                     continue
-                s, sr = k.create(chunk, voice=voice, speed=speed, lang=lang)
+                s, sr = k.create(chunk, voice=style, speed=speed, lang=lang)
                 parts.append(s)
                 parts.append(np.zeros(int(sr * 0.07), dtype=s.dtype))  # natural gap
         if not parts:
             return np.zeros(0, dtype=np.float32), sr
-        return np.concatenate(parts).astype(np.float32), sr
+        return np.clip(np.concatenate(parts), -1.0, 1.0).astype(np.float32), sr

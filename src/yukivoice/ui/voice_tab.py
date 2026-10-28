@@ -161,18 +161,21 @@ class VoiceTab(QWidget):
 
     def reload_voices(self):
         want = self.ctx.settings["voice"]
+        voices = tts.all_voices(self.ctx.engine_ready())
+        ids = [v.id for v in voices]
+        if want not in ids:
+            if want.startswith(tts.CUSTOM_PREFIX) and ids:   # the custom voice was deleted
+                want = ids[0]
+            else:
+                voices.append(tts.describe_voice(want))
         self.voice.blockSignals(True)
         self.voice.clear()
-        try:
-            ids = tts.voice_ids() if self.ctx.engine_ready() else []
-        except Exception:
-            ids = []
-        if want not in ids:
-            ids.append(want)
-        for v in sorted((tts.describe_voice(i) for i in ids), key=lambda v: (v.lang_label, v.gender, v.name)):
-            self.voice.addItem(f"{v.name} — {v.lang_label}, {v.gender}", v.id)
+        for v in sorted(voices, key=lambda v: (not v.custom, v.lang_label, v.gender, v.name)):
+            label = f"{v.name} — custom ({v.lang_label})" if v.custom else f"{v.name} — {v.lang_label}, {v.gender}"
+            self.voice.addItem(label, v.id)
         self.voice.setCurrentIndex(max(self.voice.findData(want), 0))
         self.voice.blockSignals(False)
+        self._voice_changed(0)
 
     def _voice_changed(self, _):
         if self.voice.currentData():

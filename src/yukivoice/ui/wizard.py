@@ -294,7 +294,7 @@ class _VoicePage(QWizardPage):
 
     def initializePage(self):
         try:
-            self._voices = [tts.describe_voice(v) for v in tts.voice_ids()]
+            self._voices = tts.all_voices()
         except Exception as e:
             self._voices = []
             self.msg.setText(f"Couldn't read the voice pack: {e}")

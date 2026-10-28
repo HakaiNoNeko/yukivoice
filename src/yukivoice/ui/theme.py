@@ -34,6 +34,10 @@ QLineEdit {{
     background-color: {CARD}; border: 1px solid {BORDER}; border-radius: 4px;
     padding: 6px 10px; font-size: 11pt; selection-background-color: {ACCENT};
 }}
+QSpinBox {{
+    background-color: {CARD}; border: 1px solid {BORDER}; border-radius: 4px; padding: 5px 8px; min-width: 64px;
+}}
+QSpinBox:focus {{ border-color: {ACCENT}; }}
 QLineEdit:focus, QComboBox:focus {{ border-color: {ACCENT}; }}
 
 QComboBox {{

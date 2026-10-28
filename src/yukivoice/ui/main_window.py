@@ -10,6 +10,7 @@ from .. import APP_NAME, __version__, config
 from ..context import Context
 from . import theme
 from .audio_tab import AudioTab
+from .custom_voices import CustomVoicesDialog
 from .voice_tab import VoiceTab
 
 _DOT = {"ready": theme.OK, "busy": theme.ACCENT, "warn": theme.WARN, "off": theme.DIM}
@@ -51,6 +52,7 @@ class MainWindow(QMainWindow):
         lay.addWidget(self.tabs, 1)
 
         ctx.status.connect(self._set_status)
+        ctx.engine_changed.connect(self.voice_tab.reload_voices)
         self._build_menu()
         self.tray = self._build_tray(icon)
 
@@ -77,6 +79,9 @@ class MainWindow(QMainWindow):
         tools = self.menuBar().addMenu("Tools")
         act = QAction("Setup wizard…", self)
         act.triggered.connect(self._run_wizard)
+        tools.addAction(act)
+        act = QAction("Custom voices…", self)
+        act.triggered.connect(lambda: CustomVoicesDialog(self.ctx, self).exec())
         tools.addAction(act)
         act = QAction("Open log folder", self)
         act.triggered.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(config.config_dir()))))

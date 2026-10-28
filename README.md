@@ -35,6 +35,13 @@ model in `%LOCALAPPDATA%\YukiVoice` / `~/.local/share/yukivoice`.
 > **Windows SmartScreen:** the exe isn't code-signed, so Windows may show "Windows protected your PC". Click
 > *More info → Run anyway*.
 
+### Custom voices
+
+**Tools → Custom voices…** lets you blend up to four stock voices with weights (Kokoro voices are style vectors, so a
+blend is a weighted average), pick the language the voice speaks under *Auto*, and preview it. You can also import a Kokoro
+voice file (`.npy`, shape 510×1×256). Custom voices show up at the top of the voice list. A **Yuki** voice (stock `jf_alpha`)
+is included as a preset; edit or delete it freely. They're stored in `custom_voices.json` next to the settings.
+
 ### Notes
 
 - **Monitor** plays what you send through your speakers too, so you can hear it.
