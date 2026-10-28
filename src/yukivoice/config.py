@@ -49,7 +49,7 @@ def log_path() -> Path:
 
 DEFAULTS = {
     "setup_done": False,
-    "model": "standard",     # "standard" | "lite"
+    "model": "standard",
     "voice": "af_heart",
     "speed": 1.0,
     "language": "auto",

@@ -19,14 +19,18 @@ class Context(QObject):
         self.backend: Backend = get_backend()
         self._engine = None
 
+    def _variant(self) -> str:
+        v = self.settings["model"]
+        return v if v in tts.MODELS else "standard"   # e.g. a setting left by an older build
+
     def engine(self) -> tts.Engine:
-        variant = self.settings["model"]
+        variant = self._variant()
         if self._engine is None or self._engine.variant != variant:
             self._engine = tts.Engine(variant)
         return self._engine
 
     def engine_ready(self) -> bool:
-        return tts.is_installed(self.settings["model"])
+        return tts.is_installed(self._variant())
 
     def targets(self) -> list:
         """Playback targets: the virtual mic, plus the speakers when Monitor is on."""

@@ -182,7 +182,7 @@ class _EnginePage(QWizardPage):
         self.setSubTitle("YukiVoice speaks with Kokoro, a small, natural-sounding offline voice model.")
         lay = QVBoxLayout(self)
         lay.addWidget(_label("Kokoro runs on your computer — no account, nothing is sent anywhere. "
-                             "The model is a one-time download."))
+                             "The model (about 350 MB with the voice pack) is a one-time download."))
         self.group = QButtonGroup(self)
         self.radios = {}
         for key, (text, _) in tts.MODELS.items():
@@ -193,6 +193,7 @@ class _EnginePage(QWizardPage):
         self.radios[ctx.settings["model"] if ctx.settings["model"] in tts.MODELS else "standard"].setChecked(True)
         for r in self.radios.values():
             r.toggled.connect(self._refresh)
+            r.setVisible(len(self.radios) > 1)   # nothing to choose while there's one model
         row = QHBoxLayout()
         self.btn = QPushButton("Download and install Kokoro")
         self.btn.setObjectName("go")

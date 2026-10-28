@@ -28,7 +28,7 @@ jobs:
       - name: Smoke test (UI constructs, model downloads, speech is produced)
         env:
           APPIMAGE_EXTRACT_AND_RUN: "1"
-        run: ./dist/YukiVoice-x86_64.AppImage --selftest --download lite --out selftest-linux.json
+        run: ./dist/YukiVoice-x86_64.AppImage --selftest --download standard --out selftest-linux.json
       - if: always()
         run: cat selftest-linux.json || true
       - uses: actions/upload-artifact@v4
@@ -55,7 +55,7 @@ jobs:
       - name: Smoke test (UI constructs, model downloads, speech is produced)
         shell: pwsh
         run: |
-          $p = Start-Process -FilePath dist\YukiVoice.exe -ArgumentList "--selftest","--download","lite","--out","selftest-windows.json" -Wait -PassThru
+          $p = Start-Process -FilePath dist\YukiVoice.exe -ArgumentList "--selftest","--download","standard","--out","selftest-windows.json" -Wait -PassThru
           if (Test-Path selftest-windows.json) { Get-Content selftest-windows.json }
           exit $p.ExitCode
       - if: always()

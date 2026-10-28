@@ -164,7 +164,7 @@ class VoiceTab(QWidget):
         self.voice.blockSignals(True)
         self.voice.clear()
         try:
-            ids = tts.voice_ids() if tts.is_installed(self.ctx.settings["model"]) else []
+            ids = tts.voice_ids() if self.ctx.engine_ready() else []
         except Exception:
             ids = []
         if want not in ids:

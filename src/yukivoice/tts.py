@@ -19,10 +19,11 @@ _RELEASE = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-
 
 VOICES_FILE = ("voices-v1.0.bin", 28214398)
 
-# variant -> (label, (filename, exact size in bytes))
+# variant -> (label, (filename, exact size in bytes)). The int8/fp16 exports are
+# deliberately not offered: int8 ignores fractional speeds (and crashes below 1.0),
+# fp16 has no CPU kernels.
 MODELS = {
-    "standard": ("Standard — best quality (310 MB)", ("kokoro-v1.0.onnx", 325505369)),
-    "lite": ("Lite — smaller and faster, slightly lower quality (110 MB)", ("kokoro-v1.0.int8.onnx", 114119327)),
+    "standard": ("Kokoro v1.0 (310 MB)", ("kokoro-v1.0.onnx", 325505369)),
 }
 
 # (kokoro lang code, label, preview sentence)

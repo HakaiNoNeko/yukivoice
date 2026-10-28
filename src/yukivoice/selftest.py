@@ -1,4 +1,4 @@
-"""`yukivoice --selftest [--download lite|standard] [--out report.json]`
+"""`yukivoice --selftest [--download standard] [--out report.json]`
 
 Smoke test for packaged builds (used by CI): constructs the whole UI offscreen,
 optionally downloads the model, and checks that speech is actually produced.
@@ -64,7 +64,7 @@ def run(argv) -> int:
         from . import tts
         from .context import Context
         ctx = Context()
-        if not tts.is_installed(ctx.settings["model"]):
+        if not ctx.engine_ready():
             return "skipped (model not installed)"
         eng = ctx.engine()
         res = {}

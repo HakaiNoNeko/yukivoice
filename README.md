@@ -20,7 +20,7 @@ Get them from the latest [release](../../releases). Nothing else to install; the
 1. **Audio** — on Windows, downloads the free [VB-Cable](https://vb-audio.com/Cable/) virtual-audio driver from
    vb-audio.com and starts its installer (a virtual microphone needs a driver on Windows; approve the admin prompt, click
    *Install Driver*). On Linux the mic is created by the app itself.
-2. **Voice engine** — downloads the Kokoro model once (Standard 310 MB, or Lite 110 MB).
+2. **Voice engine** — downloads the Kokoro model and voice pack once (about 350 MB).
 3. **Voice** — pick language and voice, with a preview button.
 
 Then, in Discord/your game/etc. choose the microphone:
@@ -52,7 +52,7 @@ pip install -r requirements.txt
 PYTHONPATH=src python -m yukivoice               # Windows (PowerShell): $env:PYTHONPATH="src"; python -m yukivoice
 ```
 
-`YUKIVOICE_HOME=/some/dir` keeps all settings and models in one folder. `yukivoice --selftest [--download lite]` builds the UI
+`YUKIVOICE_HOME=/some/dir` keeps all settings and models in one folder. `yukivoice --selftest [--download standard]` builds the UI
 offscreen and checks that speech is produced (this is what CI runs against the packaged builds).
 
 ## Build
