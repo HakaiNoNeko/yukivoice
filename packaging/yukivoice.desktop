@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=YukiVoice
+Comment=Text-to-speech and app audio, sent to a virtual microphone
+Exec=yukivoice
+Icon=yukivoice
+Terminal=false
+Categories=AudioVideo;Audio;Utility;
+Keywords=tts;voice;microphone;kokoro;discord;soundboard;
+StartupWMClass=yukivoice

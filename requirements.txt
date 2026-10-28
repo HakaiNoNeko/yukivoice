@@ -1,0 +1,12 @@
+PySide6-Essentials>=6.7
+kokoro-onnx==0.4.7
+miniaudio>=1.60
+numpy>=2.0
+requests>=2.31
+phonemizer-fork==3.3.1
+pykakasi>=2.3
+jaconv>=0.4
+# Windows only: per-app audio capture + listing audio sessions
+proc-tap>=1.1.1; sys_platform == "win32"
+pycaw>=20240210; sys_platform == "win32"
+psutil>=5.9; sys_platform == "win32"
