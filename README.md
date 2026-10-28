@@ -66,8 +66,8 @@ PY=python packaging/build_appimage.sh            # → dist/YukiVoice-x86_64.App
 python -m PyInstaller packaging/yukivoice.spec   # on Windows → dist/YukiVoice.exe
 ```
 
-To release: tag `vX.Y.Z`, wait for CI, download the two artifacts, and attach them to a GitHub release
-(`gh release create vX.Y.Z YukiVoice.exe YukiVoice-x86_64.AppImage`).
+To release: `gh release create vX.Y.Z --title … --notes …` (this creates the tag). The tag push makes CI build both
+targets, smoke-test them, and attach `YukiVoice.exe` and `YukiVoice-x86_64.AppImage` to that release.
 
 ## Credits
 
