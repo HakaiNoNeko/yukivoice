@@ -15,15 +15,16 @@ import requests
 from . import config
 from .log import log
 
-_RELEASE = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.1/"
+_RELEASE = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/"
 
 VOICES_FILE = ("voices-v1.0.bin", 28214398)
 
-# variant -> (label, (filename, exact size in bytes)). The int8/fp16 exports are
-# deliberately not offered: int8 ignores fractional speeds (and crashes below 1.0),
-# fp16 has no CPU kernels.
+# variant -> (label, (filename, exact size in bytes)).
+# Must be the model-files-v1.0 release: the re-exported files in model-files-v1.1
+# (including int8/fp16) take `input_ids` and need an integer speed, which breaks
+# kokoro-onnx 0.4.7 and fractional speeds; fp16 also has no CPU kernels.
 MODELS = {
-    "standard": ("Kokoro v1.0 (310 MB)", ("kokoro-v1.0.onnx", 325505369)),
+    "standard": ("Kokoro v1.0 (310 MB)", ("kokoro-v1.0.onnx", 325532387)),
 }
 
 # (kokoro lang code, label, preview sentence)
