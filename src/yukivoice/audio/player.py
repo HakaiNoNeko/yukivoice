@@ -14,6 +14,23 @@ import numpy as np
 from ..log import log
 
 
+def _close_device(dev) -> None:
+    """Stop and fully release a miniaudio device.
+
+    pyminiaudio gives every device its own ma_context (one PulseAudio/PipeWire
+    client connection) but close() only uninits the device, never the context.
+    Without freeing it, each playback leaks a connection until the server hits
+    its client limit and refuses everything ("virtual mic isn't available").
+    """
+    try:
+        dev.close()
+    finally:
+        ctx = getattr(dev, "_context", None)
+        if ctx is not None:
+            dev._context = None
+            miniaudio.lib.ma_context_uninit(ctx)
+
+
 def playback_devices() -> list:
     """[{'name': str, 'id': cdata}, …] for every output device."""
     try:
@@ -101,8 +118,7 @@ class Playback:
         devices, self._devices = self._devices, []
         for d in devices:
             try:
-                d.stop()
-                d.close()
+                _close_device(d)
             except Exception:
                 pass
         if self._on_done:
