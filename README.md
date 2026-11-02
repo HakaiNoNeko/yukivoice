@@ -7,6 +7,10 @@
 </p>
 
 <p align="center">
+  <img alt="Visitors" src="https://count.getloli.com/@HakaiNoNeko-yukivoice?name=HakaiNoNeko-yukivoice&theme=yuki-catboy&padding=7&offset=0&align=top&scale=0.5&pixelated=1&darkmode=auto">
+</p>
+
+<p align="center">
   <a href="../../releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/HakaiNoNeko/yukivoice?style=for-the-badge"></a>
   <a href="https://github.com/HakaiNoNeko/yukivoice/actions/workflows/build.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/HakaiNoNeko/yukivoice/build.yml?style=for-the-badge"></a>
   <img alt="Platforms" src="https://img.shields.io/badge/Windows%20%7C%20Linux-lightgrey?style=for-the-badge">
@@ -128,3 +132,4 @@ targets, smoke-test them, and attach `YukiVoice.exe` and `YukiVoice-x86_64.AppIm
 - Windows per-app capture: [ProcTap](https://github.com/m96-chan/ProcTap)
 - Virtual mic on Windows: [VB-Cable](https://vb-audio.com/Cable/) by VB-Audio (donationware; downloaded from their site, not redistributed)
 - UI: Qt for Python (LGPL)
+- Visitor counter: [Moe Counter!](https://github.com/journey-ad/Moe-Counter)
