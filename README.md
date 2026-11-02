@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <img alt="Visitors" src="https://count.getloli.com/@HakaiNoNeko-yukivoice?name=HakaiNoNeko-yukivoice&theme=capoo-1&padding=7&offset=0&align=top&scale=0.6&pixelated=1&darkmode=auto">
+  <img alt="Visitors" src="https://count.getloli.com/@HakaiNoNeko-yukivoice?name=HakaiNoNeko-yukivoice&theme=cat-girls-yay&padding=7&offset=0&align=top&scale=0.8&pixelated=1&darkmode=auto">
 </p>
 
 <p align="center">
