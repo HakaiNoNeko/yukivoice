@@ -13,6 +13,7 @@
 <p align="center">
   <a href="../../releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/HakaiNoNeko/yukivoice?style=flat-square"></a>
   <a href="https://github.com/HakaiNoNeko/yukivoice/actions/workflows/build.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/HakaiNoNeko/yukivoice/build.yml?style=flat-square"></a>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green?style=flat-square"></a>
   <img alt="Platforms: Windows and Linux" src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux-lightgrey?style=flat-square">
   <img alt="Text-to-speech: Kokoro, offline" src="https://img.shields.io/badge/TTS-Kokoro%20(offline)-8A2BE2?style=flat-square">
 </p>
@@ -157,6 +158,15 @@ gh release create vX.Y.Z --title "..." --notes "..."
 
 This creates the tag. The tag push makes CI build both targets, smoke-test them, and attach `YukiVoice.exe` and
 `YukiVoice-x86_64.AppImage` to the release.
+
+## License
+
+YukiVoice's own source code is released under the [MIT License](LICENSE).
+
+The prebuilt `YukiVoice.exe` and AppImage bundle third-party components under their own licenses, including
+GPL-3.0 packages (`phonemizer-fork`, `pykakasi`, and the espeak-ng library they rely on) and Qt for Python (LGPL-3.0).
+Those components stay under their original terms, and the combined binaries are distributed under the terms of the
+GPL-3.0. The complete source for everything in this repository is available here.
 
 ## Credits
 
