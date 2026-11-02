@@ -1,9 +1,9 @@
-<h1 align="center">🐱 YukiVoice</h1>
+<h1 align="center">YukiVoice</h1>
 
 <p align="center">
-  Type text and it's spoken in your chosen voice <b>through a virtual microphone</b>: in Discord, games, OBS, calls,
-  anywhere that takes a mic.<br>
-  Also plays sound files into the mic and can send another app's audio to it.
+  Type text and hear it spoken in your chosen voice <b>through a virtual microphone</b>, in Discord, games, OBS,
+  calls, or anything else that accepts a mic.<br>
+  YukiVoice can also play sound files into the mic and route another application's audio to it.
 </p>
 
 <p align="center">
@@ -11,97 +11,121 @@
 </p>
 
 <p align="center">
-  <a href="../../releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/HakaiNoNeko/yukivoice?style=for-the-badge"></a>
-  <a href="https://github.com/HakaiNoNeko/yukivoice/actions/workflows/build.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/HakaiNoNeko/yukivoice/build.yml?style=for-the-badge"></a>
-  <img alt="Platforms" src="https://img.shields.io/badge/Windows%20%7C%20Linux-lightgrey?style=for-the-badge">
-  <img alt="Offline TTS" src="https://img.shields.io/badge/TTS-Kokoro%20(offline)-8A2BE2?style=for-the-badge">
+  <a href="../../releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/HakaiNoNeko/yukivoice?style=flat-square"></a>
+  <a href="https://github.com/HakaiNoNeko/yukivoice/actions/workflows/build.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/HakaiNoNeko/yukivoice/build.yml?style=flat-square"></a>
+  <img alt="Platforms: Windows and Linux" src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux-lightgrey?style=flat-square">
+  <img alt="Text-to-speech: Kokoro, offline" src="https://img.shields.io/badge/TTS-Kokoro%20(offline)-8A2BE2?style=flat-square">
 </p>
 
 <p align="center">
-  <a href="#-install">Install</a> ·
-  <a href="#-custom-voices">Custom voices</a> ·
-  <a href="#-custom-api-engine">Custom API</a> ·
-  <a href="#-run-from-source">From source</a> ·
-  <a href="#-build">Build</a>
+  <a href="#installation">Installation</a> |
+  <a href="#features">Features</a> |
+  <a href="#custom-voices">Custom voices</a> |
+  <a href="#custom-api-engine">Custom API engine</a> |
+  <a href="#running-from-source">From source</a> |
+  <a href="#building">Building</a>
 </p>
 
 ---
 
-## ✨ What it does
+## Features
 
-Two tabs:
+YukiVoice has two tabs:
 
-| Tab | What it's for |
-|-----|---------------|
-| 🗣️ **Voice** | Text-to-speech with [Kokoro](https://huggingface.co/hexgrad/Kokoro-82M): 54 voices, 9 languages, runs offline |
-| 🎵 **Audio** | Play an audio file into the mic, or capture one app's sound and send it to the mic |
+| Tab | Purpose |
+|-----|---------|
+| **Voice** | Text-to-speech with [Kokoro](https://huggingface.co/hexgrad/Kokoro-82M): 54 voices, 9 languages, runs fully offline |
+| **Audio** | Play an audio file into the mic, or capture one application's sound and send it to the mic |
 
-## 📦 Install
+Also included:
 
-| OS | Download | Run |
-|----|----------|-----|
-| 🪟 Windows 10 (2004+) / 11, 64-bit | `YukiVoice.exe` | double-click |
-| 🐧 Linux x86-64 (PipeWire or PulseAudio) | `YukiVoice-x86_64.AppImage` | `chmod +x YukiVoice-x86_64.AppImage && ./YukiVoice-x86_64.AppImage` |
+- Custom voices, made by blending stock voices or importing Kokoro voice files.
+- Support for an external OpenAI-compatible speech server instead of the built-in engine.
+- A system tray icon that keeps the microphone live when the window is closed.
+- In-place updates from GitHub releases.
+- A quick-entry mode: `yukivoice --quick` raises the running window with the text box focused, suitable for a hotkey.
 
-Get them from the latest [release](../../releases). Nothing else to install; the first launch opens a **setup wizard**:
+## Installation
 
-1. **Audio**: on Windows, downloads the free [VB-Cable](https://vb-audio.com/Cable/) virtual-audio driver from
-   vb-audio.com and starts its installer (a virtual microphone needs a driver on Windows; approve the admin prompt, click
-   *Install Driver*). On Linux the mic is created by the app itself.
-2. **Voice engine**: downloads the Kokoro model and voice pack once (about 350 MB).
-3. **Voice**: pick language and voice, with a preview button.
+| OS | Download | How to run |
+|----|----------|------------|
+| Windows 10 (2004+) / 11, 64-bit | `YukiVoice.exe` | Double-click |
+| Linux x86-64 (PipeWire or PulseAudio) | `YukiVoice-x86_64.AppImage` | `chmod +x YukiVoice-x86_64.AppImage && ./YukiVoice-x86_64.AppImage` |
 
-Then, in Discord/your game/etc. choose the microphone:
+Download them from the latest [release](../../releases). There is nothing else to install. The first launch opens a
+**setup wizard**:
 
-| OS | Microphone to pick |
-|----|--------------------|
-| 🪟 Windows | **CABLE Output (VB-Audio Virtual Cable)** |
-| 🐧 Linux | **YukiVoice Mic** |
+1. **Audio.** On Windows this downloads the free [VB-Cable](https://vb-audio.com/Cable/) virtual-audio driver from
+   vb-audio.com and starts its installer. A virtual microphone needs a driver on Windows: approve the admin prompt and
+   click *Install Driver*. On Linux the app creates the microphone itself.
+2. **Voice engine.** Downloads the Kokoro model and voice pack once (about 350 MB).
+3. **Voice.** Choose a language and voice, with a preview button.
 
-Closing the window keeps the app in the tray so the mic stays live; quit from the tray menu. Rerun the wizard from
-**Tools → Setup wizard**. Settings and the log live in `%APPDATA%\YukiVoice` (Windows) / `~/.config/yukivoice` (Linux); the
-model in `%LOCALAPPDATA%\YukiVoice` / `~/.local/share/yukivoice`.
+Then select the microphone in Discord, your game, or any other application:
+
+| OS | Microphone to select |
+|----|----------------------|
+| Windows | **CABLE Output (VB-Audio Virtual Cable)** |
+| Linux | **YukiVoice Mic** |
+
+Closing the window keeps the app in the tray so the microphone stays live. Quit from the tray menu. You can rerun the
+wizard from **Tools > Setup wizard**.
+
+Settings and the log live in `%APPDATA%\YukiVoice` (Windows) or `~/.config/yukivoice` (Linux). The model lives in
+`%LOCALAPPDATA%\YukiVoice` (Windows) or `~/.local/share/yukivoice` (Linux).
 
 > [!NOTE]
-> **Windows SmartScreen:** the exe isn't code-signed, so Windows may show "Windows protected your PC". Click
-> *More info → Run anyway*.
+> **Windows SmartScreen.** The exe is not code-signed, so Windows may show "Windows protected your PC". Click
+> *More info*, then *Run anyway*.
 
-## 🎛️ Custom voices
+### Requirements
 
-**Tools → Custom voices…** lets you blend up to four stock voices with weights (Kokoro voices are style vectors, so a
-blend is a weighted average), pick the language the voice speaks under *Auto*, and preview it. You can also import a Kokoro
-voice file (`.npy`, shape 510×1×256). Custom voices show up at the top of the voice list and are stored in
-`custom_voices.json` next to the settings. None ship with the app.
+- Windows 10 (version 2004 or later) or Windows 11, 64-bit; or a 64-bit Linux desktop running PipeWire or PulseAudio.
+- Linux needs `pactl` (package `pipewire-pulse` or `pulseaudio-utils`), which is present on almost every desktop distribution.
+- About 350 MB of disk space for the voice model.
+- Optional: `ffmpeg` on your `PATH` to play formats beyond wav, mp3, flac and ogg.
 
-## 🔌 Custom API engine
+## Usage notes
 
-Instead of the built-in Kokoro you can point YukiVoice at your own OpenAI-compatible speech server (for example a
-Kokoro API): **Tools → Setup wizard → Voice engine → Custom API**. It needs:
+- **Monitor** plays what you send through your speakers as well, so you can hear it.
+- **Capturing an application.** On Windows the application keeps playing normally and its sound is also sent to the
+  mic (per-process WASAPI loopback). On Linux the application's streams are moved to a private sink and looped into
+  the mic, then put back when you release it.
+- **Playing files.** wav, mp3, flac and ogg play directly. Other formats (m4a, opus, video) work if `ffmpeg` is on your PATH.
+- **Quick entry.** `yukivoice --quick`, or launching a second instance, raises the running window with the text box focused.
 
-- `POST {address}/audio/speech` (called with `model`, `voice`, `input`, `speed`, `response_format: "wav"`, and `language` unless it's on Auto)
-- `GET {address}/voices` (`{"voices": [...]}`)
+## Custom voices
 
-Address, key and model are stored in `settings.json` (`engine`, `api_url`, `api_key`, `api_model`). Blended custom voices
-need the built-in engine.
+**Tools > Custom voices...** lets you blend up to four stock voices with weights. Kokoro voices are style vectors, so a
+blend is a weighted average. You can also choose the language the voice speaks under *Auto* and preview the result.
 
-## 🔄 Updates
+You can import a Kokoro voice file (`.npy`, shape 510x1x256) as well. Custom voices appear at the top of the voice list
+and are stored in `custom_voices.json` next to the settings. No custom voices ship with the app.
 
-YukiVoice checks the latest GitHub release shortly after it starts (toggle in **Tools → Check for updates on
-startup**, or run **Check for updates…** by hand). If a newer one exists you can update and restart in place: the
-AppImage or exe is replaced with the release build (size and SHA-256 checked). Runs from source just open the release
-page. While the repository is private, GitHub needs a token: `update_token` in `settings.json`, the
-`YUKIVOICE_GITHUB_TOKEN` / `GITHUB_TOKEN` / `GH_TOKEN` environment variables, or a signed-in `gh` CLI.
+## Custom API engine
 
-## 📝 Notes
+Instead of the built-in Kokoro engine, YukiVoice can use your own OpenAI-compatible speech server, for example a Kokoro
+API. Configure it under **Tools > Setup wizard > Voice engine > Custom API**. The server must provide:
 
-- 🔊 **Monitor** plays what you send through your speakers too, so you can hear it.
-- 🎯 **Capturing an app**: on Windows the app keeps playing normally and its sound is also sent to the mic (per-process
-  WASAPI loopback). On Linux the app's streams are moved to a private sink and looped into the mic, and put back on release.
-- 📂 Playing files: wav, mp3, flac, ogg directly; other formats (m4a, opus, video…) if `ffmpeg` is on your PATH.
-- ⌨️ `yukivoice --quick` (or launching a second time) raises the running window with the text box focused; bind it to a hotkey.
-- 🐧 Linux needs `pactl` (package `pipewire-pulse` / `pulseaudio-utils`; present on virtually every desktop distro).
+| Endpoint | Details |
+|---|---|
+| `POST {address}/audio/speech` | Called with `model`, `voice`, `input`, `speed`, `response_format: "wav"`, and `language` unless it is set to Auto |
+| `GET {address}/voices` | Returns `{"voices": [...]}` |
 
-## 🧑‍💻 Run from source
+The address, key and model are stored in `settings.json` (`engine`, `api_url`, `api_key`, `api_model`). Blended custom
+voices require the built-in engine.
+
+## Updates
+
+YukiVoice checks the latest GitHub release shortly after it starts. Toggle this under **Tools > Check for updates on
+startup**, or run **Check for updates...** manually. If a newer release exists you can update and restart in place: the
+AppImage or exe is replaced with the release build, after its size and SHA-256 are checked. Runs from source only open
+the release page.
+
+While the repository is private, GitHub requires a token. Provide one through `update_token` in `settings.json`, the
+`YUKIVOICE_GITHUB_TOKEN`, `GITHUB_TOKEN` or `GH_TOKEN` environment variables, or a signed-in `gh` CLI.
+
+## Running from source
 
 ```sh
 python -m venv .venv && . .venv/bin/activate     # Windows: .venv\Scripts\activate
@@ -109,27 +133,35 @@ pip install -r requirements.txt
 PYTHONPATH=src python -m yukivoice               # Windows (PowerShell): $env:PYTHONPATH="src"; python -m yukivoice
 ```
 
-`YUKIVOICE_HOME=/some/dir` keeps all settings and models in one folder. `yukivoice --selftest [--download standard]` builds
-the UI offscreen and checks that speech is produced (this is what CI runs against the packaged builds).
+Set `YUKIVOICE_HOME=/some/dir` to keep all settings and models in one folder.
 
-## 🔨 Build
+`yukivoice --selftest [--download standard]` builds the UI offscreen and checks that speech is produced. CI runs this
+against the packaged builds.
+
+## Building
 
 CI (`.github/workflows/build.yml`) builds both artifacts on every push to `main` and smoke-tests each one: the AppImage
-on Ubuntu 22.04, the exe on Windows. Locally:
+on Ubuntu 22.04 and the exe on Windows. To build locally:
 
 ```sh
 pip install -r requirements-build.txt
-PY=python packaging/build_appimage.sh            # → dist/YukiVoice-x86_64.AppImage
-python -m PyInstaller packaging/yukivoice.spec   # on Windows → dist/YukiVoice.exe
+PY=python packaging/build_appimage.sh            # produces dist/YukiVoice-x86_64.AppImage
+python -m PyInstaller packaging/yukivoice.spec   # on Windows, produces dist/YukiVoice.exe
 ```
 
-To release: `gh release create vX.Y.Z --title … --notes …` (this creates the tag). The tag push makes CI build both
-targets, smoke-test them, and attach `YukiVoice.exe` and `YukiVoice-x86_64.AppImage` to that release.
+### Releasing
 
-## 🙏 Credits
+```sh
+gh release create vX.Y.Z --title "..." --notes "..."
+```
+
+This creates the tag. The tag push makes CI build both targets, smoke-test them, and attach `YukiVoice.exe` and
+`YukiVoice-x86_64.AppImage` to the release.
+
+## Credits
 
 - Speech: [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) (Apache-2.0) via [kokoro-onnx](https://github.com/thewh1teagle/kokoro-onnx) (MIT)
-- Windows per-app capture: [ProcTap](https://github.com/m96-chan/ProcTap)
-- Virtual mic on Windows: [VB-Cable](https://vb-audio.com/Cable/) by VB-Audio (donationware; downloaded from their site, not redistributed)
+- Windows per-application capture: [ProcTap](https://github.com/m96-chan/ProcTap)
+- Virtual microphone on Windows: [VB-Cable](https://vb-audio.com/Cable/) by VB-Audio (donationware, downloaded from their site and not redistributed)
 - UI: Qt for Python (LGPL)
-- Visitor counter: [Moe Counter!](https://github.com/journey-ad/Moe-Counter)
+- Visitor counter: [Moe Counter](https://github.com/journey-ad/Moe-Counter)
